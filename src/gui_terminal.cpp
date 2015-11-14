@@ -20,6 +20,17 @@ TermGuiInterface::~TermGuiInterface()
 
 
 
+
+std::string TermGuiInterface::interface_info()
+{
+	std::string info("Interface based on ncurses (terminal)");
+
+	return info;
+};
+
+
+
+
 bool TermGuiInterface::init(int argc, char *argv[])
 {
 	std::cout << __FILE__ << ": " << __LINE__ << std::endl;
@@ -35,7 +46,7 @@ void TermGuiInterface::register_other_interfaces(const std::vector<std::string> 
 
 
 
-int TermGuiInterface::run()
+void TermGuiInterface::run()
 {
 	if(m_app_state)
 	{
@@ -44,7 +55,6 @@ int TermGuiInterface::run()
 	};
 
 	std::cout << __FILE__ << ": " << __LINE__ << std::endl;
-	return 0;
 };
 
 

@@ -14,55 +14,20 @@ namespace iface
 
 
 
-
-/*
-class GuiWindow
-{
-public:
-    virtual ~GuiWindow() {};
-};
-
-
-
-
-class GuiButton
-{
-public:
-    virtual ~GuiButton() {};
-};
-
-
-
-
-class GuiLabel
-{
-public:
-    virtual ~GuiLabel() {};
-};
-
-
-
-
-class GuiEdit
-{
-public:
-    virtual ~GuiEdit() {};
-};
-*/
-
-
-
 class GuiInterface
 {
 public:
     virtual ~GuiInterface() {};
 
 public:
+    virtual std::string interface_info() = 0;
+
+public:
     virtual bool init(int argc, char *argv[]) = 0;
     virtual void register_other_interfaces(const std::vector<std::string> &interfaces) = 0;
 	virtual void register_app_state(std::shared_ptr<app::AppState> state) = 0;
     
-    virtual int run() = 0;
+    virtual void run() = 0;
 };
 
 

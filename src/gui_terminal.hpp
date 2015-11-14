@@ -13,11 +13,14 @@ private:
 
 public:
 	~TermGuiInterface();
-
+	
+public:
+    std::string interface_info();
+    
 public:
     bool init(int argc, char *argv[]);
     void register_other_interfaces(const std::vector<std::string> &interfaces);
 	void register_app_state(std::shared_ptr<app::AppState> state);
 
-    int run();
+    void run();
 };
