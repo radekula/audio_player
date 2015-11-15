@@ -122,14 +122,14 @@ void GtkGuiInterface::construct_interface()
 	gtk_widget_get_preferred_size(GTK_WIDGET(stop_button), &size, &size);
 
 	
-	GtkWidget *player_window_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+	GtkWidget *player_window_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(player_window_vbox), FALSE);
 	gtk_container_add(GTK_CONTAINER(player_window), GTK_WIDGET(player_window_vbox));
 	
 	gtk_box_pack_start(GTK_BOX(player_window_vbox), GTK_WIDGET(gtk_label_new("audio_player")), TRUE, TRUE, 0);
 
 	
-	GtkWidget *player_button_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	GtkWidget *player_button_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(player_button_hbox), FALSE);
 	
 	gtk_box_pack_start(GTK_BOX(player_button_hbox), GTK_WIDGET(play_button), FALSE, FALSE, 0);
@@ -141,10 +141,7 @@ void GtkGuiInterface::construct_interface()
 	
 	gtk_box_pack_start(GTK_BOX(player_button_hbox), GTK_WIDGET(player_progress_bar), TRUE, TRUE, 0);
 	
-	gtk_box_pack_start(GTK_BOX(player_window_vbox), GTK_WIDGET(player_button_hbox), FALSE, TRUE, 0);
-	
-	
-	
+	gtk_box_pack_start(GTK_BOX(player_window_vbox), GTK_WIDGET(player_button_hbox), FALSE, TRUE, 0);	
 };
 
 
