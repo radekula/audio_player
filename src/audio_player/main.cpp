@@ -9,22 +9,22 @@
 int main(int argc, char *argv[])
 {
 	std::shared_ptr<app::AppState> app_state(new app::AppState());
-    std::vector<std::string> interfaces_list = iface::list_interface_files();
+    std::vector<std::string> interfaces_list = iface::list_interface_files(app_state->get_param("interfaces_library_dir"));
 	
 	if(interfaces_list.size() == 0)
 	{
-		std::cout << "Nie znaleziono biliotek interface'u" << std::endl;
+		std::cout << "Cannot find interface library files" << std::endl;
 		return 1;
 	};
 
 	for(auto iter : interfaces_list)
-		std::cout << "Znaleziono bibilotekę interface'u: " << iter << std::endl;
+		std::cout << "Found interface: " << iter << std::endl;
 
     auto active_interface = iface::load_interface(interfaces_list[0]);
 
 	if(!active_interface)
 	{
-		std::cout << "Nie udało się załadować interface'u: " << interfaces_list[0] << std::endl;
+		std::cout << "Cannot load interface: " << interfaces_list[0] << std::endl;
 		return 1;
 	};
 	
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 		active_interface->register_app_state(app_state);
 		active_interface->run();
 
-		auto status = std::atoi(app_state->GetParam("iface_exit_status").c_str());
+		auto status = std::atoi(app_state->get_param("iface_exit_status").c_str());
 		
 		switch(status)
 		{
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 			}
 			case 1:
 			{
-				auto iface_num = std::atoi(app_state->GetParam("iface_next_iface").c_str());
+				auto iface_num = std::atoi(app_state->get_param("iface_next_iface").c_str());
 				
 				active_interface = iface::load_interface(interfaces_list[iface_num]);
 				break;

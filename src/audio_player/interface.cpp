@@ -10,14 +10,14 @@ namespace iface
 {
 
 
-std::vector<std::string> list_interface_files()
+std::vector<std::string> list_interface_files(std::string interfaces_library_dir)
 {
 	std::vector<std::string> libraries;
 	
 	DIR *lib_dir;
 	struct dirent *file;
 
-	lib_dir = opendir("./lib");
+	lib_dir = opendir(interfaces_library_dir.c_str());
 	
 	if(lib_dir != nullptr)
 	{
@@ -31,7 +31,7 @@ std::vector<std::string> list_interface_files()
 			auto pos_ext = file_name.rfind(extension);
 			
 			if(pos_base != std::string::npos && pos_ext != std::string::npos && pos_ext == file_name.length() - extension.length())
-				libraries.push_back(file_name);
+				libraries.push_back(interfaces_library_dir + file_name);
 		};	
 	};
 	
@@ -44,7 +44,7 @@ std::unique_ptr<GuiInterface> load_interface(std::string lib_file)
 {
 	std::unique_ptr<GuiInterface> new_interface;
 
-	auto file = std::string("lib/") + lib_file;
+	auto file = lib_file;
 
 	auto dlhandle = dlopen(file.c_str(), RTLD_LAZY);
 	if(!dlhandle)

@@ -19,8 +19,8 @@ public:
 	~AppState();
 	
 public:
-	std::string GetParam(std::string name);
-	void SetParam(std::string name, std::string value);
+	std::string get_param(std::string name);
+	void set_param(std::string name, std::string value);
 };
 
 

@@ -5,6 +5,9 @@ namespace app {
 
 AppState::AppState()
 {
+    // default params
+    m_params["interfaces_library_dir"] = "./";
+
 	m_params["iface_next_iface"] = "0";
 	m_params["iface_exit_status"] = "OK";
 };
@@ -13,7 +16,7 @@ AppState::~AppState()
 {
 };
 
-std::string AppState::GetParam(std::string name)
+std::string AppState::get_param(std::string name)
 {
 	std::string value;
 	value = m_params[name];
@@ -21,7 +24,7 @@ std::string AppState::GetParam(std::string name)
 };
 
 
-void AppState::SetParam(std::string name, std::string value)
+void AppState::set_param(std::string name, std::string value)
 {
 	m_params[name] = value;
 };

@@ -33,7 +33,7 @@ public:
 
 std::unique_ptr<GuiInterface> create_interface();
 
-std::vector<std::string> list_interface_files();
+std::vector<std::string> list_interface_files(std::string interfaces_library_dir);
 std::unique_ptr<GuiInterface> load_interface(std::string lib_file);
 
 

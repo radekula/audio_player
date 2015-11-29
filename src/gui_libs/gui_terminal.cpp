@@ -48,12 +48,6 @@ void TermGuiInterface::register_other_interfaces(const std::vector<std::string> 
 
 void TermGuiInterface::run()
 {
-	if(m_app_state)
-	{
-		m_app_state->SetParam("iface_next_iface", "1");
-		m_app_state->SetParam("iface_exit_status", "1");
-	};
-
 	std::cout << __FILE__ << ": " << __LINE__ << std::endl;
 };
 

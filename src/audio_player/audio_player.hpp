@@ -2,6 +2,19 @@
 #define __AUDIO_PLAYER_HPP__
 
 
+#include <gst/gst.h>
+#include <glib.h>
+#include <string>
+
+
+
+
+namespace player
+{
+
+
+
+
 class AudioPlayer
 {
 private:
@@ -28,5 +41,8 @@ public:
 	void stop();
 };
 
+
+
+}
 
 #endif

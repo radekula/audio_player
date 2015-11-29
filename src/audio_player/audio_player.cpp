@@ -2,6 +2,12 @@
 
 
 
+namespace player
+{
+
+
+
+
 
 AudioPlayer::AudioPlayer()
 {
@@ -26,10 +32,10 @@ void AudioPlayer::init(int argc, char *argv[])
 	conv = gst_element_factory_make("audioconvert", "converter");
 	sink = gst_element_factory_make("autoaudiosink", "audio-output");
 	
-	bus = gst_pipeline_get_bus(GST_PIPELINE(playback_pipeline));
+	message_bus = gst_pipeline_get_bus(GST_PIPELINE(playback_pipeline));
 //	bus_watch_id = gst_bus_add_watch(bus, bus_call, loop);
 	
-	gst_object_unref(bus);
+	gst_object_unref(message_bus);
 	gst_bin_add_many(GST_BIN(playback_pipeline), source, demuxer, decoder, conv, sink, NULL);
 	  
 	gst_element_link(source, demuxer);
@@ -79,4 +85,7 @@ void AudioPlayer::pause()
 
 void AudioPlayer::stop()
 {
+};
+
+
 };
