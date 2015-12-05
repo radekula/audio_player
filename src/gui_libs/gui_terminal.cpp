@@ -39,7 +39,7 @@ bool TermGuiInterface::init(int argc, char *argv[])
 
 
 
-void TermGuiInterface::register_other_interfaces(const std::vector<std::string> &interfaces)
+void TermGuiInterface::register_other_interfaces(const std::vector<iface::GuiInterfaceInfo> &interfaces)
 {
 	std::cout << __FILE__ << ": " << __LINE__ << std::endl;
 };
@@ -56,7 +56,13 @@ void TermGuiInterface::run()
 
 void TermGuiInterface::register_app_state(std::shared_ptr<app::AppState> state)
 {
-	m_app_state = state;
-	std::cout << __FILE__ << ": " << __LINE__ << std::endl;
+	_app_state = state;
+};
+
+
+
+void TermGuiInterface::register_audio_player(std::shared_ptr<player::AudioPlayer> audio_player)
+{
+	_audio_player = audio_player;
 };
 

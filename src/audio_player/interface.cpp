@@ -10,9 +10,9 @@ namespace iface
 {
 
 
-std::vector<std::string> list_interface_files(std::string interfaces_library_dir)
+std::vector<GuiInterfaceInfo> list_interface_files(std::string interfaces_library_dir)
 {
-	std::vector<std::string> libraries;
+	std::vector<GuiInterfaceInfo> libraries;
 	
 	DIR *lib_dir;
 	struct dirent *file;
@@ -23,6 +23,8 @@ std::vector<std::string> list_interface_files(std::string interfaces_library_dir
 	{
 		while(file = readdir(lib_dir))
 		{
+            GuiInterfaceInfo info;
+            
 			std::string file_name(file->d_name);
 			std::string base_name("libgui");
 			std::string extension(".so");
@@ -30,8 +32,11 @@ std::vector<std::string> list_interface_files(std::string interfaces_library_dir
 			auto pos_base = file_name.find(base_name);
 			auto pos_ext = file_name.rfind(extension);
 			
+            info.name = file_name;
+            info.file_path = interfaces_library_dir + "/" + file_name;
+            
 			if(pos_base != std::string::npos && pos_ext != std::string::npos && pos_ext == file_name.length() - extension.length())
-				libraries.push_back(interfaces_library_dir + file_name);
+				libraries.push_back(info);
 		};	
 	};
 	
@@ -49,7 +54,7 @@ std::unique_ptr<GuiInterface> load_interface(std::string lib_file)
 	auto dlhandle = dlopen(file.c_str(), RTLD_LAZY);
 	if(!dlhandle)
 	{
-		std::cout << "Błąd otwierania pliku: " << lib_file << std::endl;
+		std::cout << "Error operning file: " << lib_file << std::endl;
 		return nullptr;
 	};
 	
@@ -60,7 +65,7 @@ std::unique_ptr<GuiInterface> load_interface(std::string lib_file)
 	create_interface = (std::unique_ptr<iface::GuiInterface> (*)()) dlsym(dlhandle, "CreateInterface");
 	if(!create_interface)
 	{
-		std::cout << "Nie znaleziono funkcji 'CreateInterface' w bibliotece: " << lib_file << std::endl;
+		std::cout << "Cannot find 'CreateInterface' function in library: " << lib_file << std::endl;
 		return nullptr;
 	}
 	

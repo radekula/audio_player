@@ -5,13 +5,13 @@
 #include <gst/gst.h>
 #include <glib.h>
 #include <string>
+#include <list>
 
 
 
 
 namespace player
 {
-
 
 
 
@@ -27,6 +27,8 @@ private:
 	
 	GstBus *message_bus;
 
+    std::list<std::string> _play_list;
+    std::list<std::string>::iterator _curr_playing;
 	
 public:
 	AudioPlayer();
@@ -35,10 +37,19 @@ public:
 public:
 	void init(int argc, char *argv[]);
 	
-	void set_file(std::string file_path);
+	void set_file(std::string file);
+    std::string get_curr_file();
+    
 	void play();
 	void pause();
 	void stop();
+    void next();
+    void prev();
+    
+    void add_to_play_list(std::string file);
+    void remove_from_play_list(std::string file);
+    
+    std::list<std::string>& get_play_list();
 };
 
 
