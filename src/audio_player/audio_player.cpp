@@ -22,11 +22,28 @@ AudioPlayer::AudioPlayer()
 };
 
 
+
+void AudioPlayer::on_pad_added(GstElement *element, GstPad *pad, gpointer data)
+{
+    GstPad *sinkpad;
+    GstElement *decoder = (GstElement *) data;
+
+    sinkpad = gst_element_get_static_pad(decoder, "sink");
+
+    gst_pad_link(pad, sinkpad);
+
+    gst_object_unref(sinkpad);
+};
+
+
+
+
 void AudioPlayer::init(int argc, char *argv[])
 {
 	gst_init(&argc, &argv);
-	
+
 	playback_pipeline = gst_pipeline_new("playback_pipeline");
+
 	source = gst_element_factory_make("filesrc", "file-source");
 	demuxer = gst_element_factory_make("oggdemux", "ogg-demuxer");
 	decoder = gst_element_factory_make("vorbisdec", "vorbis-decoder");
@@ -41,7 +58,8 @@ void AudioPlayer::init(int argc, char *argv[])
 	  
 	gst_element_link(source, demuxer);
 	gst_element_link_many (decoder, conv, sink, NULL);
-
+    
+    g_signal_connect(demuxer, "pad-added", G_CALLBACK(on_pad_added), decoder);
 };
 
 
@@ -92,6 +110,8 @@ void AudioPlayer::play()
 
 void AudioPlayer::pause()
 {
+    if(playback_pipeline)
+        gst_element_set_state(GST_ELEMENT(playback_pipeline), GST_STATE_PAUSED);
 };
 
 
@@ -99,6 +119,8 @@ void AudioPlayer::pause()
 
 void AudioPlayer::stop()
 {
+    if(playback_pipeline)
+        gst_element_set_state(GST_ELEMENT(playback_pipeline), GST_STATE_READY);
 };
 
 
@@ -109,6 +131,8 @@ void AudioPlayer::next()
 
     if(_curr_playing == _play_list.end())
         _curr_playing--;
+    
+    set_file(*_curr_playing);
 };
 
 
@@ -119,6 +143,8 @@ void AudioPlayer::prev()
         return;
         
     _curr_playing--;
+
+    set_file(*_curr_playing);
 };
 
 

@@ -29,7 +29,10 @@ private:
 
     std::list<std::string> _play_list;
     std::list<std::string>::iterator _curr_playing;
-	
+
+private:
+    static void on_pad_added(GstElement *element, GstPad *pad, gpointer data);
+    
 public:
 	AudioPlayer();
 	~AudioPlayer();
