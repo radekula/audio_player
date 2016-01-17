@@ -213,7 +213,7 @@ void GtkGuiInterface::construct_interface()
 	gtk_window_set_default_size(GTK_WINDOW(_player_window_cover), 400, 400);
 	gtk_window_set_decorated(GTK_WINDOW(_player_window_cover), false);
 	
-	g_signal_connect_swapped(G_OBJECT(_player_window_cover), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect_swapped(G_OBJECT(_player_window_cover), "destroy", G_CALLBACK(gtk_main_quit), this);
 	
 	size.width = 64;
 	size.height = 64;
@@ -305,7 +305,53 @@ void GtkGuiInterface::construct_interface()
 // song title label
     _curr_playing_label_cover = gtk_label_new("No file selected");
 	gtk_widget_set_halign(GTK_WIDGET(_curr_playing_label_cover), GTK_ALIGN_CENTER);
-	gtk_box_pack_start(GTK_BOX(_overlay_vbox), GTK_WIDGET(_curr_playing_label_cover), FALSE, TRUE, 0);	
+	gtk_box_pack_start(GTK_BOX(_overlay_vbox), GTK_WIDGET(_curr_playing_label_cover), FALSE, TRUE, 0);
+	
+	
+///////////////////////
+	_play_list_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	if(!_play_list_window)
+		throw -1;
+		
+	gtk_window_set_title(GTK_WINDOW(_play_list_window), "Audio player - playlist");
+	gtk_window_set_resizable(GTK_WINDOW(_play_list_window), TRUE);
+	gtk_window_set_default_size(GTK_WINDOW(_play_list_window), 500, 600);
+	g_signal_connect(GTK_WIDGET(_play_list_window), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+
+    GtkWidget *playlist_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    gtk_container_add(GTK_CONTAINER(_play_list_window), GTK_WIDGET(playlist_vbox));
+    
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolled_window), GTK_SHADOW_ETCHED_IN);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_box_pack_start(GTK_BOX(playlist_vbox), scrolled_window, TRUE, TRUE, 0);
+    
+	_list_store = gtk_list_store_new(1, G_TYPE_STRING);
+
+    _treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(_list_store));
+    gtk_container_add(GTK_CONTAINER(scrolled_window), _treeview);
+
+    auto renderer = gtk_cell_renderer_text_new();
+	auto column = gtk_tree_view_column_new_with_attributes("Nazwa", renderer, "text", 0, NULL);
+	gtk_tree_view_column_set_sort_column_id(column, 0);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(_treeview), column);
+    
+	GtkWidget *play_list_button_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_pack_start(GTK_BOX(playlist_vbox), GTK_WIDGET(play_list_button_hbox), FALSE, TRUE, 0);
+    
+	GtkWidget *button = gtk_button_new_with_label("Dodaj");
+	if(!button)
+		throw -1;
+    g_signal_connect(G_OBJECT(button), "button-release-event", G_CALLBACK(signal_add_to_play_list), this);  
+    gtk_box_pack_start(GTK_BOX(play_list_button_hbox), GTK_WIDGET(button), TRUE, TRUE, 0);
+
+	button = gtk_button_new_with_label("Usuń");
+	if(!button)
+		throw -1;
+    g_signal_connect(G_OBJECT(button), "button-release-event", G_CALLBACK(signal_remove_from_play_list), this);  
+    gtk_box_pack_start(GTK_BOX(play_list_button_hbox), GTK_WIDGET(button), TRUE, TRUE, 0);
+    
+    gtk_widget_hide(GTK_WIDGET(_play_list_window));
 };
 
 
@@ -334,6 +380,13 @@ void GtkGuiInterface::restore_state()
 		
         _audio_player->set_file(files.begin()->c_str());
     }
+    
+    GtkTreeIter iter;
+    for(auto g : files)
+    {
+		gtk_list_store_append(_list_store, &iter);
+		gtk_list_store_set(_list_store, &iter, 0, g.c_str(), -1);
+	};
 };
 
 
@@ -412,6 +465,32 @@ void GtkGuiInterface::signal_edit_play_list(GtkButton *button, GdkEvent *event, 
         interface->edit_play_list();
 };
 
+
+
+void GtkGuiInterface::signal_add_to_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
+{
+	auto file_chooser = gtk_file_chooser_dialog_new("Wybierz plik", NULL, GTK_FILE_CHOOSER_ACTION_OPEN, "_Wybierz", GTK_RESPONSE_ACCEPT, NULL);
+	
+	auto filter = gtk_file_filter_new();
+	gtk_file_filter_add_mime_type(filter, "audio/ogg");
+	
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(file_chooser), filter);
+	auto response = gtk_dialog_run(GTK_DIALOG(file_chooser));
+	
+	if(response == GTK_RESPONSE_ACCEPT)
+		interface->add_to_play_list(gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser)));
+	
+	gtk_widget_destroy(file_chooser);
+};
+
+
+
+void GtkGuiInterface::signal_remove_from_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
+{
+	auto selection = gtk_tree_view_get_selection(interface->_treeview);
+	
+//	gtk_tree_selection_get_selected(selection, );
+};
 
 
 
@@ -496,15 +575,25 @@ void GtkGuiInterface::change_view()
 
 void GtkGuiInterface::edit_play_list()
 {
-/*    _audio_player->prev();
+	gtk_widget_show_all(_play_list_window);	
+};
 
-    gtk_label_set_label(GTK_LABEL(_curr_playing_label), _audio_player->get_curr_file().c_str());
-    
-    std::string cover_file = _audio_player->get_curr_file().substr(0, _audio_player->get_curr_file().size() - 3) + "png";
-    
-	if(_cover)
-	{
-		auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
-		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
-	};*/
+
+
+void GtkGuiInterface::remove_file(std::string file)
+{
+	_audio_player->remove_from_play_list(file);
+};
+
+
+
+
+void GtkGuiInterface::add_to_play_list(std::string file)
+{
+    GtkTreeIter iter;
+
+	gtk_list_store_append(_list_store, &iter);
+	gtk_list_store_set(_list_store, &iter, 0, file.c_str(), -1);
+	
+	_audio_player->add_to_play_list(file);
 };

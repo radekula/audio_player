@@ -61,7 +61,11 @@ private:
     GtkWidget *_player_progress_bar_cover;
     GtkWidget *_curr_playing_label_cover;
 	GtkWidget *_cover_cover;
-		
+	
+	GtkWidget *_play_list_window;
+	GtkWidget *_treeview;
+	GtkListStore *_list_store;
+	
 private:
 	void construct_interface();
 	void restore_state();
@@ -81,6 +85,9 @@ private:
     static void signal_change_view(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface);
     static void signal_edit_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface);
 
+    static void signal_add_to_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface);
+    static void signal_remove_from_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface);
+
 public:
     void play();
     void stop();
@@ -90,6 +97,9 @@ public:
 
     void change_view();
     void edit_play_list();
+    
+    void remove_file(std::string file);
+    void add_to_play_list(std::string file);
     
 public:
 	GtkGuiInterface();
