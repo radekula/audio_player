@@ -45,12 +45,28 @@ void AudioPlayer::init(int argc, char *argv[])
 	playback_pipeline = gst_pipeline_new("playback_pipeline");
 
 	source = gst_element_factory_make("filesrc", "file-source");
+	if(source == 0)
+		std::cout << "Missing source" << std::endl;
+		
 	demuxer = gst_element_factory_make("oggdemux", "ogg-demuxer");
+	if(demuxer == 0)
+		std::cout << "Missing demuxer" << std::endl;
+
 	decoder = gst_element_factory_make("vorbisdec", "vorbis-decoder");
+	if(decoder == 0)
+		std::cout << "Missing decoder" << std::endl;
+		
 	conv = gst_element_factory_make("audioconvert", "converter");
+	if(conv == 0)
+		std::cout << "Missing converter" << std::endl;
+		
 	sink = gst_element_factory_make("autoaudiosink", "audio-output");
-	
+	if(sink == 0)
+		std::cout << "Missing sink" << std::endl;
+			
 	message_bus = gst_pipeline_get_bus(GST_PIPELINE(playback_pipeline));
+	if(message_bus == 0)
+		std::cout << "Missing message bus" << std::endl;
 //	bus_watch_id = gst_bus_add_watch(bus, bus_call, loop);
 	
 	gst_object_unref(message_bus);
@@ -60,6 +76,8 @@ void AudioPlayer::init(int argc, char *argv[])
 	gst_element_link_many (decoder, conv, sink, NULL);
     
     g_signal_connect(demuxer, "pad-added", G_CALLBACK(on_pad_added), decoder);
+    
+    is_playing = false;
 };
 
 
@@ -82,11 +100,19 @@ void AudioPlayer::set_file(std::string file)
         if(*iter == file)
             _curr_playing = iter;
     }
-    
-/*	if(source)
+
+	bool resume = is_playing;
+	
+	if(resume)
+		stop();
+		
+	if(source)
 		g_object_set(G_OBJECT(source), "location", _curr_playing->c_str(), NULL);
 	else
-		throw -1;*/
+		throw -1;
+		
+	if(resume)
+		play();
 };
 
 
@@ -102,7 +128,10 @@ std::string AudioPlayer::get_curr_file()
 void AudioPlayer::play()
 {
 	if(playback_pipeline)
+	{
 		gst_element_set_state(GST_ELEMENT(playback_pipeline), GST_STATE_PLAYING);
+		is_playing = true;
+	};
 };
 
 
@@ -120,7 +149,10 @@ void AudioPlayer::pause()
 void AudioPlayer::stop()
 {
     if(playback_pipeline)
+    {
         gst_element_set_state(GST_ELEMENT(playback_pipeline), GST_STATE_READY);
+        is_playing = false;
+    };
 };
 
 
