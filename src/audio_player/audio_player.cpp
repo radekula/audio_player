@@ -83,10 +83,10 @@ void AudioPlayer::set_file(std::string file)
             _curr_playing = iter;
     }
     
-	if(source)
+/*	if(source)
 		g_object_set(G_OBJECT(source), "location", _curr_playing->c_str(), NULL);
 	else
-		throw -1;
+		throw -1;*/
 };
 
 

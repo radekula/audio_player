@@ -16,6 +16,8 @@ std::unique_ptr<iface::GuiInterface> CreateInterface()
 
 GtkGuiInterface::GtkGuiInterface()
 {
+	_primary = true;
+	
 	_was_initiated = false;
 	_player_window = nullptr;
 	_play_button = nullptr;
@@ -25,6 +27,18 @@ GtkGuiInterface::GtkGuiInterface()
     _prev_button = nullptr;
     _player_progress_bar = nullptr;
     _curr_playing_label = nullptr;
+    _cover = nullptr;
+    _switch_button = nullptr;
+    
+    _player_window_cover = nullptr;
+    _play_icon_cover = nullptr;
+	_stop_icon_cover = nullptr;
+	_pause_icon_cover = nullptr;
+    _next_icon_cover = nullptr;
+    _prev_icon_cover = nullptr;
+    _curr_playing_label_cover = nullptr;
+    _cover_cover = nullptr;
+    _switch_icon_cover = nullptr;
 };
 
 
@@ -113,7 +127,6 @@ void GtkGuiInterface::construct_interface()
 	
 	g_signal_connect_swapped(G_OBJECT(_player_window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	
-	
 	GtkRequisition size;
 	size.width = 32;
 	size.height = 32;
@@ -122,38 +135,50 @@ void GtkGuiInterface::construct_interface()
 	if(!_prev_button)
 		throw -1;
 	gtk_widget_get_preferred_size(GTK_WIDGET(_prev_button), &size, &size);
-    g_signal_connect(G_OBJECT(_prev_button), "clicked", G_CALLBACK(signal_play_prev), this);
+    g_signal_connect(G_OBJECT(_prev_button), "button-release-event", G_CALLBACK(signal_play_prev), this);
 
 	_play_button = gtk_button_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	if(!_play_button)
 		throw -1;
 	gtk_widget_get_preferred_size(GTK_WIDGET(_play_button), &size, &size);
-    g_signal_connect(G_OBJECT(_play_button), "clicked", G_CALLBACK(signal_play), this);
+    g_signal_connect(G_OBJECT(_play_button), "button-release-event", G_CALLBACK(signal_play), this);
 		
 	_pause_button = gtk_button_new_from_icon_name("media-playback-pause", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	if(!_pause_button)
 		throw -1;
 	gtk_widget_get_preferred_size(GTK_WIDGET(_pause_button), &size, &size);
-    g_signal_connect(G_OBJECT(_pause_button), "clicked", G_CALLBACK(signal_pause), this);
+    g_signal_connect(G_OBJECT(_pause_button), "button-release-event", G_CALLBACK(signal_pause), this);
 		
 	_stop_button = gtk_button_new_from_icon_name("media-playback-stop", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	if(!_stop_button)
 		throw -1;	
 	gtk_widget_get_preferred_size(GTK_WIDGET(_stop_button), &size, &size);
-    g_signal_connect(G_OBJECT(_stop_button), "clicked", G_CALLBACK(signal_stop), this);
+    g_signal_connect(G_OBJECT(_stop_button), "button-release-event", G_CALLBACK(signal_stop), this);
 
 	_next_button = gtk_button_new_from_icon_name("media-skip-forward", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	if(!_next_button)
 		throw -1;
 	gtk_widget_get_preferred_size(GTK_WIDGET(_next_button), &size, &size);
-    g_signal_connect(G_OBJECT(_next_button), "clicked", G_CALLBACK(signal_play_next), this);
-	
+    g_signal_connect(G_OBJECT(_next_button), "button-release-event", G_CALLBACK(signal_play_next), this);
+
+	_play_list_button = gtk_button_new_from_icon_name("edit-select-all", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_play_list_button)
+		throw -1;
+	gtk_widget_get_preferred_size(GTK_WIDGET(_play_list_button), &size, &size);
+    g_signal_connect(G_OBJECT(_play_list_button), "button-release-event", G_CALLBACK(signal_edit_play_list), this);
+
+	_switch_button = gtk_button_new_from_icon_name("view-fullscreen", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_switch_button)
+		throw -1;
+	gtk_widget_get_preferred_size(GTK_WIDGET(_switch_button), &size, &size);
+    g_signal_connect(G_OBJECT(_switch_button), "button-release-event", G_CALLBACK(signal_change_view), this);
+    	
 	GtkWidget *_player_window_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(_player_window_vbox), FALSE);
 	gtk_container_add(GTK_CONTAINER(_player_window), GTK_WIDGET(_player_window_vbox));
 	
-	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(gtk_label_new("audio_player")), TRUE, TRUE, 0);
-
+	_cover = gtk_image_new();
+	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(_cover), TRUE, TRUE, 0);
 	
 	GtkWidget *_player_button_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(_player_button_hbox), FALSE);
@@ -163,6 +188,8 @@ void GtkGuiInterface::construct_interface()
 	gtk_box_pack_start(GTK_BOX(_player_button_hbox), GTK_WIDGET(_pause_button), FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(_player_button_hbox), GTK_WIDGET(_stop_button), FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(_player_button_hbox), GTK_WIDGET(_next_button), FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(_player_button_hbox), GTK_WIDGET(_play_list_button), FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(_player_button_hbox), GTK_WIDGET(_switch_button), FALSE, FALSE, 0);
 	
     _curr_playing_label = gtk_label_new("No file selected");
 	gtk_widget_set_halign(GTK_WIDGET(_curr_playing_label), GTK_ALIGN_CENTER);
@@ -173,7 +200,112 @@ void GtkGuiInterface::construct_interface()
 	
 	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(_player_progress_bar), FALSE, TRUE, 0);		
 	gtk_widget_set_halign(GTK_WIDGET(_player_button_hbox), GTK_ALIGN_CENTER);
-	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(_player_button_hbox), FALSE, TRUE, 0);	
+	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(_player_button_hbox), FALSE, TRUE, 0);
+	
+/////////////////////////
+
+	_player_window_cover = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	if(!_player_window_cover)
+		throw -1;
+	
+	gtk_window_set_title(GTK_WINDOW(_player_window_cover), "Audio player");
+	gtk_window_set_resizable(GTK_WINDOW(_player_window_cover), TRUE);
+	gtk_window_set_default_size(GTK_WINDOW(_player_window_cover), 400, 400);
+	gtk_window_set_decorated(GTK_WINDOW(_player_window_cover), false);
+	
+	g_signal_connect_swapped(G_OBJECT(_player_window_cover), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	
+	size.width = 64;
+	size.height = 64;
+
+// overlay
+	GtkWidget *_overlay = gtk_overlay_new();
+	gtk_container_add(GTK_CONTAINER(_player_window_cover), GTK_WIDGET(_overlay));
+
+// background image (cover)
+	_cover_cover = gtk_image_new();	
+	gtk_container_add(GTK_CONTAINER(_overlay), GTK_WIDGET(_cover_cover));
+	
+// vbox (player window on top of cover)
+	GtkWidget *_overlay_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(_overlay_vbox), FALSE);	
+	gtk_overlay_add_overlay(GTK_OVERLAY(_overlay), GTK_WIDGET(_overlay_vbox));
+	
+// empty label to fill space
+	gtk_box_pack_start(GTK_BOX(_overlay_vbox), gtk_label_new(""), TRUE, TRUE, 0);	
+	
+// controls
+	GtkWidget *_player_button_cover_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(_player_button_cover_hbox), FALSE);
+	gtk_box_pack_start(GTK_BOX(_overlay_vbox), GTK_WIDGET(_player_button_cover_hbox), FALSE, TRUE, 0);
+
+	GtkWidget *prev_icon_event_box = gtk_event_box_new();
+	_prev_icon_cover = gtk_image_new_from_icon_name("media-skip-backward", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_prev_icon_cover)
+		throw -1;
+	gtk_widget_get_preferred_size(GTK_WIDGET(_prev_icon_cover), &size, &size);
+    g_signal_connect(G_OBJECT(prev_icon_event_box), "button-release-event", G_CALLBACK(signal_play_prev), this);
+  	gtk_container_add(GTK_CONTAINER(prev_icon_event_box), GTK_WIDGET(_prev_icon_cover));
+	gtk_box_pack_start(GTK_BOX(_player_button_cover_hbox), GTK_WIDGET(prev_icon_event_box), TRUE, FALSE, 0);
+		
+	GtkWidget *play_icon_event_box = gtk_event_box_new();
+	_play_icon_cover = gtk_image_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_play_icon_cover)
+		throw -1;
+	gtk_widget_get_preferred_size(GTK_WIDGET(_play_icon_cover), &size, &size);
+    g_signal_connect(G_OBJECT(play_icon_event_box), "button-release-event", G_CALLBACK(signal_play), this);
+  	gtk_container_add(GTK_CONTAINER(play_icon_event_box), GTK_WIDGET(_play_icon_cover));
+	gtk_box_pack_start(GTK_BOX(_player_button_cover_hbox), GTK_WIDGET(play_icon_event_box), TRUE, FALSE, 0);
+		
+	GtkWidget *pause_icon_event_box = gtk_event_box_new();
+	_pause_icon_cover = gtk_image_new_from_icon_name("media-playback-pause", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_pause_icon_cover)
+		throw -1;
+	gtk_widget_get_preferred_size(GTK_WIDGET(_pause_icon_cover), &size, &size);
+    g_signal_connect(G_OBJECT(pause_icon_event_box), "button-release-event", G_CALLBACK(signal_pause), this);
+  	gtk_container_add(GTK_CONTAINER(pause_icon_event_box), GTK_WIDGET(_pause_icon_cover));
+	gtk_box_pack_start(GTK_BOX(_player_button_cover_hbox), GTK_WIDGET(pause_icon_event_box), TRUE, FALSE, 0);
+		
+	GtkWidget *stop_icon_event_box = gtk_event_box_new();
+	_stop_icon_cover = gtk_image_new_from_icon_name("media-playback-stop", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_stop_icon_cover)
+		throw -1;	
+	gtk_widget_get_preferred_size(GTK_WIDGET(_stop_icon_cover), &size, &size);
+    g_signal_connect(G_OBJECT(stop_icon_event_box), "button-release-event", G_CALLBACK(signal_stop), this);
+  	gtk_container_add(GTK_CONTAINER(stop_icon_event_box), GTK_WIDGET(_stop_icon_cover));
+	gtk_box_pack_start(GTK_BOX(_player_button_cover_hbox), GTK_WIDGET(stop_icon_event_box), TRUE, FALSE, 0);
+
+	GtkWidget *next_icon_event_box = gtk_event_box_new();
+	_next_icon_cover = gtk_image_new_from_icon_name("media-skip-forward", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_next_icon_cover)
+		throw -1;
+	gtk_widget_get_preferred_size(GTK_WIDGET(_next_icon_cover), &size, &size);
+    g_signal_connect(G_OBJECT(next_icon_event_box), "button-release-event", G_CALLBACK(signal_play_next), this);
+  	gtk_container_add(GTK_CONTAINER(next_icon_event_box), GTK_WIDGET(_next_icon_cover));
+	gtk_box_pack_start(GTK_BOX(_player_button_cover_hbox), GTK_WIDGET(next_icon_event_box), TRUE, FALSE, 0);
+
+	GtkWidget *play_list_icon_event_box = gtk_event_box_new();
+	_play_list_icon_cover = gtk_image_new_from_icon_name("edit-select-all", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_play_list_icon_cover)
+		throw -1;
+	gtk_widget_get_preferred_size(GTK_WIDGET(_play_list_icon_cover), &size, &size);
+    g_signal_connect(G_OBJECT(play_list_icon_event_box), "button-release-event", G_CALLBACK(signal_edit_play_list), this);
+	gtk_container_add(GTK_CONTAINER(play_list_icon_event_box), GTK_WIDGET(_play_list_icon_cover));
+	gtk_box_pack_start(GTK_BOX(_player_button_cover_hbox), GTK_WIDGET(play_list_icon_event_box), TRUE, FALSE, 0);
+
+	GtkWidget *_switch_event_box = gtk_event_box_new();
+	_switch_icon_cover = gtk_image_new_from_icon_name("view-fullscreen", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	if(!_switch_icon_cover)
+		throw -1;
+	gtk_widget_get_preferred_size(GTK_WIDGET(_switch_icon_cover), &size, &size);
+    g_signal_connect(G_OBJECT(_switch_event_box), "button-release-event", G_CALLBACK(signal_change_view), this);
+	gtk_container_add(GTK_CONTAINER(_switch_event_box), GTK_WIDGET(_switch_icon_cover));
+	gtk_box_pack_start(GTK_BOX(_player_button_cover_hbox), GTK_WIDGET(_switch_event_box), TRUE, FALSE, 0);
+	
+// song title label
+    _curr_playing_label_cover = gtk_label_new("No file selected");
+	gtk_widget_set_halign(GTK_WIDGET(_curr_playing_label_cover), GTK_ALIGN_CENTER);
+	gtk_box_pack_start(GTK_BOX(_overlay_vbox), GTK_WIDGET(_curr_playing_label_cover), FALSE, TRUE, 0);	
 };
 
 
@@ -182,7 +314,7 @@ void GtkGuiInterface::construct_interface()
 void GtkGuiInterface::restore_state()
 {
     auto files = _audio_player->get_play_list();
-
+    
     if(files.size() == 0)
     {
         gtk_label_set_label(GTK_LABEL(_curr_playing_label), "No file selected");
@@ -190,6 +322,16 @@ void GtkGuiInterface::restore_state()
     else
     {
         gtk_label_set_label(GTK_LABEL(_curr_playing_label), files.begin()->c_str());
+        
+        std::string cover_file = files.begin()->substr(0, files.begin()->size() - 3) + "png";
+    
+		if(_cover)
+		{
+			auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
+			gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
+			gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 400, 400, GDK_INTERP_BILINEAR));
+		};
+		
         _audio_player->set_file(files.begin()->c_str());
     }
 };
@@ -211,7 +353,7 @@ void GtkGuiInterface::destroy_interface()
 
 
 
-void GtkGuiInterface::signal_play(GtkButton *button, GtkGuiInterface *interface)
+void GtkGuiInterface::signal_play(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
 {
     if(interface)
         interface->play();
@@ -220,7 +362,7 @@ void GtkGuiInterface::signal_play(GtkButton *button, GtkGuiInterface *interface)
 
 
 
-void GtkGuiInterface::signal_stop(GtkButton *button, GtkGuiInterface *interface)
+void GtkGuiInterface::signal_stop(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
 {
     if(interface)
         interface->stop();
@@ -229,7 +371,7 @@ void GtkGuiInterface::signal_stop(GtkButton *button, GtkGuiInterface *interface)
 
 
 
-void GtkGuiInterface::signal_pause(GtkButton *button, GtkGuiInterface *interface)
+void GtkGuiInterface::signal_pause(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
 {
     if(interface)
         interface->pause();
@@ -238,7 +380,7 @@ void GtkGuiInterface::signal_pause(GtkButton *button, GtkGuiInterface *interface
 
 
 
-void GtkGuiInterface::signal_play_next(GtkButton *button, GtkGuiInterface *interface)
+void GtkGuiInterface::signal_play_next(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
 {
     if(interface)
         interface->play_next();
@@ -247,10 +389,27 @@ void GtkGuiInterface::signal_play_next(GtkButton *button, GtkGuiInterface *inter
 
 
 
-void GtkGuiInterface::signal_play_prev(GtkButton *button, GtkGuiInterface *interface)
+void GtkGuiInterface::signal_play_prev(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
 {
     if(interface)
         interface->play_prev();
+};
+
+
+
+void GtkGuiInterface::signal_change_view(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
+{
+	if(interface)
+        interface->change_view();
+};
+
+
+
+
+void GtkGuiInterface::signal_edit_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
+{
+	if(interface)
+        interface->edit_play_list();
 };
 
 
@@ -285,6 +444,15 @@ void GtkGuiInterface::play_next()
     _audio_player->next();
 
     gtk_label_set_label(GTK_LABEL(_curr_playing_label), _audio_player->get_curr_file().c_str());
+    
+    std::string cover_file = _audio_player->get_curr_file().substr(0, _audio_player->get_curr_file().size() - 3) + "png";
+    
+	if(_cover)
+	{
+		auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 400, 400, GDK_INTERP_BILINEAR));
+	};
 };
 
 
@@ -295,5 +463,48 @@ void GtkGuiInterface::play_prev()
     _audio_player->prev();
 
     gtk_label_set_label(GTK_LABEL(_curr_playing_label), _audio_player->get_curr_file().c_str());
+    
+    std::string cover_file = _audio_player->get_curr_file().substr(0, _audio_player->get_curr_file().size() - 3) + "png";
+    
+	if(_cover)
+	{
+		auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 400, 400, GDK_INTERP_BILINEAR));
+	};
 };
 
+
+
+void GtkGuiInterface::change_view()
+{
+	if(_primary)
+	{
+		gtk_widget_hide(GTK_WIDGET(_player_window));
+		gtk_widget_show_all(GTK_WIDGET(_player_window_cover));
+		_primary = false;
+	}
+	else
+	{
+		gtk_widget_hide(GTK_WIDGET(_player_window_cover));
+		gtk_widget_show_all(GTK_WIDGET(_player_window));
+		_primary = true;
+	};
+};
+
+
+
+void GtkGuiInterface::edit_play_list()
+{
+/*    _audio_player->prev();
+
+    gtk_label_set_label(GTK_LABEL(_curr_playing_label), _audio_player->get_curr_file().c_str());
+    
+    std::string cover_file = _audio_player->get_curr_file().substr(0, _audio_player->get_curr_file().size() - 3) + "png";
+    
+	if(_cover)
+	{
+		auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
+	};*/
+};
