@@ -28,13 +28,16 @@ private:
 	GstBus *message_bus;
 
     std::list<std::string> _play_list;
-    std::list<std::string>::iterator _curr_playing;
+    std::string _curr_playing;
     
     bool is_playing;
 
 private:
     static void on_pad_added(GstElement *element, GstPad *pad, gpointer data);
-    
+
+private:
+    std::unique_ptr<std::list<std::string>::iterator> find_file(std::string file);
+
 public:
 	AudioPlayer();
 	~AudioPlayer();

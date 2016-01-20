@@ -487,9 +487,21 @@ void GtkGuiInterface::signal_add_to_play_list(GtkButton *button, GdkEvent *event
 
 void GtkGuiInterface::signal_remove_from_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface)
 {
-	auto selection = gtk_tree_view_get_selection(interface->_treeview);
-	
-//	gtk_tree_selection_get_selected(selection, );
+	auto selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(interface->_treeview));
+	gtk_tree_selection_set_mode(GTK_TREE_SELECTION(selection), GTK_SELECTION_SINGLE);
+    
+    GtkTreeModel *model;
+    
+    auto selected = gtk_tree_selection_get_selected_rows(GTK_TREE_SELECTION(selection), &model);
+   
+    gchar *buff;
+    
+    GtkTreeIter iter;
+    gtk_tree_model_get_iter(GTK_TREE_MODEL(model), &iter, (GtkTreePath *)(g_list_first(selected)->data)); 
+    gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 0, &buff, -1);
+
+    std::string file(buff);
+    interface->remove_file(file);
 };
 
 
@@ -582,7 +594,37 @@ void GtkGuiInterface::edit_play_list()
 
 void GtkGuiInterface::remove_file(std::string file)
 {
-	_audio_player->remove_from_play_list(file);
+    _audio_player->remove_from_play_list(file);
+    
+    GtkTreeIter iter;
+    gchar *buff;
+    
+    auto model = gtk_tree_view_get_model(GTK_TREE_VIEW(_treeview));
+    auto is_row = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(model), &iter);
+    
+    while(is_row)
+    {
+        gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 0, &buff, -1);
+        
+        if(file == std::string(buff))
+        {
+            is_row = false;
+            gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+        };
+        
+        is_row = gtk_tree_model_iter_next(GTK_TREE_MODEL(model), &iter);
+    };
+    
+    gtk_label_set_label(GTK_LABEL(_curr_playing_label), _audio_player->get_curr_file().c_str());
+    
+    std::string cover_file = _audio_player->get_curr_file().substr(0, _audio_player->get_curr_file().size() - 3) + "png";
+    
+	if(_cover)
+	{
+		auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 400, 400, GDK_INTERP_BILINEAR));
+	};
 };
 
 

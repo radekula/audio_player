@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include "audio_player.hpp"
 
 
@@ -35,6 +36,22 @@ void AudioPlayer::on_pad_added(GstElement *element, GstPad *pad, gpointer data)
     gst_object_unref(sinkpad);
 };
 
+
+
+std::unique_ptr<std::list<std::string>::iterator> AudioPlayer::find_file(std::string file)
+{
+    std::list<std::string>::iterator iter;
+    
+    for(iter = _play_list.begin(); iter != _play_list.end(); iter++)
+    {
+        if(*iter == file)
+            break;
+    };
+    
+    std::unique_ptr<std::list<std::string>::iterator> p_iter = std::make_unique<std::list<std::string>::iterator>(iter);
+    
+    return p_iter;
+};
 
 
 
@@ -95,19 +112,20 @@ AudioPlayer::~AudioPlayer()
 
 void AudioPlayer::set_file(std::string file)
 {
-    for(auto iter = _play_list.begin(); iter != _play_list.end(); iter++)
-    {
-        if(*iter == file)
-            _curr_playing = iter;
-    }
-
+    auto p_iter = find_file(file);
+    
+    if(!p_iter)
+        return;
+    
+    _curr_playing = *(*p_iter);
+    
 	bool resume = is_playing;
 	
 	if(resume)
 		stop();
 		
 	if(source)
-		g_object_set(G_OBJECT(source), "location", _curr_playing->c_str(), NULL);
+		g_object_set(G_OBJECT(source), "location", _curr_playing.c_str(), NULL);
 	else
 		throw -1;
 		
@@ -120,7 +138,7 @@ void AudioPlayer::set_file(std::string file)
 
 std::string AudioPlayer::get_curr_file()
 {
-    return *_curr_playing;
+    return _curr_playing;
 };
 
 
@@ -159,24 +177,43 @@ void AudioPlayer::stop()
 
 void AudioPlayer::next()
 {
-    _curr_playing++;
-
-    if(_curr_playing == _play_list.end())
-        _curr_playing--;
+    auto p_iter = find_file(_curr_playing);
     
-    set_file(*_curr_playing);
+    std::list<std::string>::iterator iter;
+    
+    if(p_iter)
+    {
+        iter = *p_iter;
+        
+        iter++;
+        if(iter == _play_list.end())
+            iter--;
+    }
+    else
+        iter = _play_list.begin();
+    
+    set_file(*iter);
 };
 
 
 
 void AudioPlayer::prev()
 {
-    if(_curr_playing == _play_list.begin())
-        return;
+    auto p_iter = find_file(_curr_playing);
+    
+    std::list<std::string>::iterator iter;
+    
+    if(p_iter)
+    {
+        iter = *p_iter;
         
-    _curr_playing--;
-
-    set_file(*_curr_playing);
+        if(iter != _play_list.begin())
+            iter--;
+    }
+    else
+        iter = _play_list.begin();
+    
+    set_file(*iter);
 };
 
 
@@ -191,11 +228,20 @@ void AudioPlayer::add_to_play_list(std::string file)
 
 void AudioPlayer::remove_from_play_list(std::string file)
 {
-    for(auto iter = _play_list.begin(); iter != _play_list.end(); iter++)
+    auto p_iter = find_file(file);
+    
+    if(p_iter)
     {
-        if(*iter == file)
-            _play_list.erase(iter);
-    };
+        std::list<std::string>::iterator iter = *p_iter;
+        iter++;
+        
+        if(*p_iter == _play_list.begin())
+            next();
+        else
+            prev();
+            
+        _play_list.erase(*p_iter);
+    };    
 };
 
 
