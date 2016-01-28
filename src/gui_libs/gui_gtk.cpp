@@ -12,6 +12,12 @@ std::unique_ptr<iface::GuiInterface> CreateInterface()
 };
 
 
+int refresh_signal(void *interface)
+{
+	((GtkGuiInterface *) interface)->refresh();
+
+	return 1;
+};
 
 
 GtkGuiInterface::GtkGuiInterface()
@@ -123,7 +129,7 @@ void GtkGuiInterface::construct_interface()
 	
 	gtk_window_set_title(GTK_WINDOW(_player_window), "Audio player");
 	gtk_window_set_resizable(GTK_WINDOW(_player_window), TRUE);
-	gtk_window_set_default_size(GTK_WINDOW(_player_window), 400, 200);
+	gtk_window_set_default_size(GTK_WINDOW(_player_window), 100, 100);
 	
 	g_signal_connect_swapped(G_OBJECT(_player_window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	
@@ -195,10 +201,14 @@ void GtkGuiInterface::construct_interface()
 	gtk_widget_set_halign(GTK_WIDGET(_curr_playing_label), GTK_ALIGN_CENTER);
 	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(_curr_playing_label), FALSE, TRUE, 0);	
     
-	_player_progress_bar = gtk_progress_bar_new();
-	gtk_widget_set_valign(GTK_WIDGET(_player_progress_bar), GTK_ALIGN_CENTER);
+	GtkWidget *progress_bar_event_box = gtk_event_box_new();
+	g_signal_connect(G_OBJECT(progress_bar_event_box), "button-press-event", G_CALLBACK(signal_progress_on_mouse_click), this);
 	
-	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(_player_progress_bar), FALSE, TRUE, 0);		
+	_player_progress_bar = gtk_progress_bar_new();
+	gtk_widget_set_valign(GTK_WIDGET(_player_progress_bar), GTK_ALIGN_CENTER);	
+	
+	gtk_container_add(GTK_CONTAINER(progress_bar_event_box), _player_progress_bar);
+	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(progress_bar_event_box), FALSE, TRUE, 0);		
 	gtk_widget_set_halign(GTK_WIDGET(_player_button_hbox), GTK_ALIGN_CENTER);
 	gtk_box_pack_start(GTK_BOX(_player_window_vbox), GTK_WIDGET(_player_button_hbox), FALSE, TRUE, 0);
 	
@@ -207,10 +217,16 @@ void GtkGuiInterface::construct_interface()
 	_player_window_cover = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	if(!_player_window_cover)
 		throw -1;
+
+	GtkWidget *event_box = gtk_event_box_new();
+	gtk_widget_add_events(_player_window_cover, GDK_LEAVE_NOTIFY_MASK);
+	gtk_widget_add_events(_player_window_cover, GDK_ENTER_NOTIFY_MASK);
+	g_signal_connect(G_OBJECT(_player_window_cover), "leave-notify-event", G_CALLBACK(signal_cover_on_mouse_leave), this);
+	g_signal_connect(G_OBJECT(_player_window_cover), "enter-notify-event", G_CALLBACK(signal_cover_on_mouse_enter), this);
 	
 	gtk_window_set_title(GTK_WINDOW(_player_window_cover), "Audio player");
 	gtk_window_set_resizable(GTK_WINDOW(_player_window_cover), TRUE);
-	gtk_window_set_default_size(GTK_WINDOW(_player_window_cover), 400, 400);
+	gtk_window_set_default_size(GTK_WINDOW(_player_window_cover), 300, 300);
 	gtk_window_set_decorated(GTK_WINDOW(_player_window_cover), false);
 	
 	g_signal_connect_swapped(G_OBJECT(_player_window_cover), "destroy", G_CALLBACK(gtk_main_quit), this);
@@ -229,7 +245,12 @@ void GtkGuiInterface::construct_interface()
 // vbox (player window on top of cover)
 	GtkWidget *_overlay_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(_overlay_vbox), FALSE);	
-	gtk_overlay_add_overlay(GTK_OVERLAY(_overlay), GTK_WIDGET(_overlay_vbox));
+
+	_buttons_cover_revealer = gtk_revealer_new();
+	gtk_revealer_set_transition_duration(GTK_REVEALER(_buttons_cover_revealer), 1000); 
+	gtk_revealer_set_transition_type(GTK_REVEALER(_buttons_cover_revealer), GTK_REVEALER_TRANSITION_TYPE_CROSSFADE); 
+	gtk_container_add(GTK_CONTAINER(_buttons_cover_revealer), _overlay_vbox);
+	gtk_overlay_add_overlay(GTK_OVERLAY(_overlay), GTK_WIDGET(_buttons_cover_revealer));
 	
 // empty label to fill space
 	gtk_box_pack_start(GTK_BOX(_overlay_vbox), gtk_label_new(""), TRUE, TRUE, 0);	
@@ -247,7 +268,7 @@ void GtkGuiInterface::construct_interface()
     g_signal_connect(G_OBJECT(prev_icon_event_box), "button-release-event", G_CALLBACK(signal_play_prev), this);
   	gtk_container_add(GTK_CONTAINER(prev_icon_event_box), GTK_WIDGET(_prev_icon_cover));
 	gtk_box_pack_start(GTK_BOX(_player_button_cover_hbox), GTK_WIDGET(prev_icon_event_box), TRUE, FALSE, 0);
-		
+	
 	GtkWidget *play_icon_event_box = gtk_event_box_new();
 	_play_icon_cover = gtk_image_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	if(!_play_icon_cover)
@@ -307,6 +328,8 @@ void GtkGuiInterface::construct_interface()
 	gtk_widget_set_halign(GTK_WIDGET(_curr_playing_label_cover), GTK_ALIGN_CENTER);
 	gtk_box_pack_start(GTK_BOX(_overlay_vbox), GTK_WIDGET(_curr_playing_label_cover), FALSE, TRUE, 0);
 	
+	gtk_revealer_set_reveal_child(GTK_REVEALER(_buttons_cover_revealer), false);
+	
 	
 ///////////////////////
 	_play_list_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -352,6 +375,8 @@ void GtkGuiInterface::construct_interface()
     gtk_box_pack_start(GTK_BOX(play_list_button_hbox), GTK_WIDGET(button), TRUE, TRUE, 0);
     
     gtk_widget_hide(GTK_WIDGET(_play_list_window));
+    
+    g_timeout_add(250, refresh_signal, (gpointer) this);
 };
 
 
@@ -364,18 +389,20 @@ void GtkGuiInterface::restore_state()
     if(files.size() == 0)
     {
         gtk_label_set_label(GTK_LABEL(_curr_playing_label), "No file selected");
+        gtk_label_set_label(GTK_LABEL(_curr_playing_label_cover), "No file selected");
     }
     else
     {
         gtk_label_set_label(GTK_LABEL(_curr_playing_label), files.begin()->c_str());
-        
+        gtk_label_set_label(GTK_LABEL(_curr_playing_label_cover), files.begin()->c_str());
+       
         std::string cover_file = files.begin()->substr(0, files.begin()->size() - 3) + "png";
     
 		if(_cover)
 		{
 			auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
 			gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
-			gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 400, 400, GDK_INTERP_BILINEAR));
+			gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 300, 300, GDK_INTERP_BILINEAR));
 		};
 		
         _audio_player->set_file(files.begin()->c_str());
@@ -505,6 +532,28 @@ void GtkGuiInterface::signal_remove_from_play_list(GtkButton *button, GdkEvent *
 };
 
 
+void GtkGuiInterface::signal_progress_on_mouse_click(GtkWidget *widget, GdkEventButton *event, GtkGuiInterface *interface)
+{
+	double width = gtk_widget_get_allocated_width(widget);
+	
+	double percent = (double) (event->x * 100) / width;
+	interface->set_pos(percent);	
+};
+
+
+void GtkGuiInterface::signal_cover_on_mouse_leave(GtkWidget *widget, GdkEvent *event, GtkGuiInterface *interface)
+{
+	interface->hide_controls();
+};
+
+
+
+void GtkGuiInterface::signal_cover_on_mouse_enter(GtkWidget *widget, GdkEvent *event, GtkGuiInterface *interface)
+{
+	interface->show_controls();
+};
+
+
 
 void GtkGuiInterface::play()
 {
@@ -535,6 +584,7 @@ void GtkGuiInterface::play_next()
     _audio_player->next();
 
     gtk_label_set_label(GTK_LABEL(_curr_playing_label), _audio_player->get_curr_file().c_str());
+    gtk_label_set_label(GTK_LABEL(_curr_playing_label_cover), _audio_player->get_curr_file().c_str());
     
     std::string cover_file = _audio_player->get_curr_file().substr(0, _audio_player->get_curr_file().size() - 3) + "png";
     
@@ -542,7 +592,7 @@ void GtkGuiInterface::play_next()
 	{
 		auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
 		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
-		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 400, 400, GDK_INTERP_BILINEAR));
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 300, 300, GDK_INTERP_BILINEAR));
 	};
 };
 
@@ -554,6 +604,7 @@ void GtkGuiInterface::play_prev()
     _audio_player->prev();
 
     gtk_label_set_label(GTK_LABEL(_curr_playing_label), _audio_player->get_curr_file().c_str());
+    gtk_label_set_label(GTK_LABEL(_curr_playing_label_cover), _audio_player->get_curr_file().c_str());
     
     std::string cover_file = _audio_player->get_curr_file().substr(0, _audio_player->get_curr_file().size() - 3) + "png";
     
@@ -561,7 +612,7 @@ void GtkGuiInterface::play_prev()
 	{
 		auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
 		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
-		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 400, 400, GDK_INTERP_BILINEAR));
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 300, 300, GDK_INTERP_BILINEAR));
 	};
 };
 
@@ -573,11 +624,16 @@ void GtkGuiInterface::change_view()
 	{
 		gtk_widget_hide(GTK_WIDGET(_player_window));
 		gtk_widget_show_all(GTK_WIDGET(_player_window_cover));
+		gtk_revealer_set_reveal_child(GTK_REVEALER(_buttons_cover_revealer), false);
+		gtk_window_set_keep_above(GTK_WINDOW(_player_window_cover), true);
 		_primary = false;
 	}
 	else
 	{
+		gtk_window_set_keep_above(GTK_WINDOW(_player_window_cover), false);
+		gtk_revealer_set_reveal_child(GTK_REVEALER(_buttons_cover_revealer), false);
 		gtk_widget_hide(GTK_WIDGET(_player_window_cover));
+		gtk_widget_show_all(GTK_WIDGET(_player_window));
 		gtk_widget_show_all(GTK_WIDGET(_player_window));
 		_primary = true;
 	};
@@ -616,6 +672,7 @@ void GtkGuiInterface::remove_file(std::string file)
     };
     
     gtk_label_set_label(GTK_LABEL(_curr_playing_label), _audio_player->get_curr_file().c_str());
+    gtk_label_set_label(GTK_LABEL(_curr_playing_label_cover), _audio_player->get_curr_file().c_str());
     
     std::string cover_file = _audio_player->get_curr_file().substr(0, _audio_player->get_curr_file().size() - 3) + "png";
     
@@ -623,7 +680,7 @@ void GtkGuiInterface::remove_file(std::string file)
 	{
 		auto pixbuf = gdk_pixbuf_new_from_file(cover_file.c_str(), NULL);
 		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover), pixbuf);
-		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 400, 400, GDK_INTERP_BILINEAR));
+		gtk_image_set_from_pixbuf(GTK_IMAGE(_cover_cover), gdk_pixbuf_scale_simple(pixbuf, 300, 300, GDK_INTERP_BILINEAR));
 	};
 };
 
@@ -638,4 +695,45 @@ void GtkGuiInterface::add_to_play_list(std::string file)
 	gtk_list_store_set(_list_store, &iter, 0, file.c_str(), -1);
 	
 	_audio_player->add_to_play_list(file);
+};
+
+
+void GtkGuiInterface::show_controls()
+{
+	gtk_revealer_set_reveal_child(GTK_REVEALER(_buttons_cover_revealer), true);	
+};
+
+
+
+void GtkGuiInterface::hide_controls()
+{
+	gtk_revealer_set_reveal_child(GTK_REVEALER(_buttons_cover_revealer), false);	
+};
+
+
+
+void GtkGuiInterface::refresh()
+{
+	if(_audio_player)
+	{
+		double length = _audio_player->get_length();
+		double pos = _audio_player->get_position();
+
+		double fraction;
+		
+		if(length > 0)
+			fraction = (float) pos / length;
+		else
+			fraction = 0;
+			
+			
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(_player_progress_bar), fraction);
+	};
+};
+
+
+void GtkGuiInterface::set_pos(double percentage)
+{
+	if(_audio_player)
+		_audio_player->seek(percentage);
 };

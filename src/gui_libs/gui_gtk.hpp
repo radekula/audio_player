@@ -50,6 +50,7 @@ private:
     GtkWidget *_curr_playing_label;
 	GtkWidget *_cover;
 
+	GtkWidget *_buttons_cover_revealer;
 	GtkWidget *_player_window_cover;
 	GtkWidget *_play_icon_cover;
 	GtkWidget *_stop_icon_cover;
@@ -87,6 +88,11 @@ private:
 
     static void signal_add_to_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface);
     static void signal_remove_from_play_list(GtkButton *button, GdkEvent *event, GtkGuiInterface *interface);
+    
+    static void signal_cover_on_mouse_leave(GtkWidget *button, GdkEvent *event, GtkGuiInterface *interface);
+    static void signal_cover_on_mouse_enter(GtkWidget *button, GdkEvent *event, GtkGuiInterface *interface);
+
+    static void signal_progress_on_mouse_click(GtkWidget *widget, GdkEventButton *event, GtkGuiInterface *interface);
 
 public:
     void play();
@@ -100,6 +106,12 @@ public:
     
     void remove_file(std::string file);
     void add_to_play_list(std::string file);
+    
+    void show_controls();
+    void hide_controls();
+    
+    void refresh();
+    void set_pos(double percentage);
     
 public:
 	GtkGuiInterface();

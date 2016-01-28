@@ -253,4 +253,50 @@ std::list<std::string>& AudioPlayer::get_play_list()
 };
 
 
+
+long AudioPlayer::get_length()
+{
+	gint64 length = 0;
+	
+	if(playback_pipeline && is_playing)
+    {
+		GstFormat format = GST_FORMAT_TIME;
+        gst_element_query_duration(playback_pipeline, &format, &length);
+    };
+    
+    return length;
+};
+
+
+
+long AudioPlayer::get_position()
+{
+	gint64 position = 0;
+	
+	if(playback_pipeline && is_playing)
+    {
+		GstFormat format = GST_FORMAT_TIME;
+        gst_element_query_position(playback_pipeline, &format, &position);
+    };
+    
+    return position;
+};
+
+
+
+void AudioPlayer::seek(double percentage)
+{
+	gint64 position = 0;
+	
+	if(playback_pipeline && is_playing)
+	{
+		double max = get_length();
+		double buf = percentage * 0.01;
+		long new_pos = (max * buf);
+		
+		gst_element_seek(playback_pipeline, 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, GST_SEEK_TYPE_SET, new_pos , GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
+	};
+};
+
+
 };

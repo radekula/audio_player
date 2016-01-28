@@ -58,6 +58,11 @@ public:
     void remove_from_play_list(std::string file);
     
     std::list<std::string>& get_play_list();
+    
+    long get_length();
+    long get_position();
+    
+    void seek(double percentage);
 };
 
 
